@@ -559,6 +559,9 @@ class TGverify(BaseCog):
 
         if isinstance(discord_user, int):
             discord_user = ctx.guild.get_member(discord_user)
+        else:
+            discord_user = ctx.guild.get_member(discord_user.id)
+
         if not discord_user:
             return await ctx.send("Invalid Discord user ID or username.")
 
