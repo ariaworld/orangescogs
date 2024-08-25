@@ -433,7 +433,7 @@ class TGverify(BaseCog):
                     reason="User has verified against their in game living minutes",
                 )
 
-            fuck = f"Congrats {ctx.author} your verification is complete, but you do not have {min_required_living_minutes} minutes in game as a living crew member (you have {player['living_time']}), so you may not have access to all channels. You can always verify again later by simply doing `?verify` and if you have enough minutes, you will gain access to the remaining channels"
+            fuck = f"Congrats, {ctx.author}, your verification is complete."
             if successful:
                 fuck = f"Congrats {ctx.author} your verification is complete"
             return await message.edit(content=fuck)
@@ -544,3 +544,54 @@ class TGverify(BaseCog):
             )
 
         return tgdb
+
+    @commands.guild_only()
+    @commands.command()
+    @checks.mod_or_permissions(administrator=True)
+    async def force_verify(self, ctx, ckey: str, discord_user: Union[discord.User, int]):
+        """
+        Force verify a user based on their ckey and discord username/ID.
+        This command can only be used by an admin.
+        """
+        role = await self.config.guild(ctx.guild).verified_role()
+        role = ctx.guild.get_role(role)
+        tgdb = self.get_tgdb()
+
+        if isinstance(discord_user, int):
+            discord_user = ctx.guild.get_member(discord_user)
+        if not discord_user:
+            return await ctx.send("Invalid Discord user ID or username.")
+
+        if not role:
+            raise TGUnrecoverableError(
+                "No verification role is configured, configure it with the config command"
+            )
+
+        if role in discord_user.roles:
+            return await ctx.send("User is already verified")
+
+        message = await ctx.send("Attempting to verify the user....")
+        async with ctx.typing():
+            ckey = normalise_to_ckey(ckey)
+            log.info(
+                f"Force verification request by {ctx.author.id}, for ckey {ckey}, discord user: {discord_user.id}"
+            )
+            # Now look for the user based on the ckey
+            player = await tgdb.get_player_by_ckey(ctx, ckey)
+
+            if player is None:
+                raise TGRecoverableError(
+                    f"Sorry {ctx.author} looks like we couldn't look up the user, ask the verification team for support!"
+                )
+
+            # clear any/all previous valid links for ckey or the discord id (in case they have decided to make a new ckey)
+            await tgdb.clear_all_valid_discord_links_for_ckey(ctx, ckey)
+            await tgdb.clear_all_valid_discord_links_for_discord_id(ctx, discord_user.id)
+            # Record that the user is linked against a discord id
+            await tgdb.update_discord_link(ctx, None, discord_user.id)
+
+            # Add role to the user
+            await discord_user.add_roles(role, reason="User has been forcefully verified")
+
+            msg = f"Congrats, {discord_user}, your verification is complete."
+            return await message.edit(content=msg)
