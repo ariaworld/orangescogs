@@ -591,10 +591,17 @@ class TGverify(BaseCog):
             await tgdb.clear_all_valid_discord_links_for_ckey(ctx, ckey)
             await tgdb.clear_all_valid_discord_links_for_discord_id(ctx, discord_user.id)
             # Record that the user is linked against a discord id
+            log.info(f"Updating discord link for ckey {ckey} and discord user {discord_user.id}")
             await tgdb.update_discord_link(ctx, None, discord_user.id)
 
             # Add role to the user
             await discord_user.add_roles(role, reason="User has been forcefully verified")
 
             msg = f"Congrats, {discord_user}, your verification is complete."
-            return await message.edit(content=msg)
+            await message.edit(content=msg)
+
+        # Delete the original message
+        try:
+            await ctx.message.delete()
+        except discord.DiscordException:
+            log.warning("Failed to delete the original message. Ensure the bot has the required permissions.")
