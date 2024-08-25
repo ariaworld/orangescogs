@@ -553,55 +553,60 @@ class TGverify(BaseCog):
         Force verify a user based on their ckey and discord username/ID.
         This command can only be used by an admin.
         """
-        role = await self.config.guild(ctx.guild).verified_role()
-        role = ctx.guild.get_role(role)
-        tgdb = self.get_tgdb()
+        try:
+            role = await self.config.guild(ctx.guild).verified_role()
+            role = ctx.guild.get_role(role)
+            tgdb = self.get_tgdb()
 
-        if isinstance(discord_user, int):
-            discord_user = ctx.guild.get_member(discord_user)
-        else:
-            discord_user = ctx.guild.get_member(discord_user.id)
+            if isinstance(discord_user, int):
+                discord_user = ctx.guild.get_member(discord_user)
+            else:
+                discord_user = ctx.guild.get_member(discord_user.id)
 
-        if not discord_user:
-            return await ctx.send("Invalid Discord user ID or username.")
+            if not discord_user:
+                return await ctx.send("Invalid Discord user ID or username.")
 
-        if not role:
-            raise TGUnrecoverableError(
-                "No verification role is configured, configure it with the config command"
-            )
-
-        if role in discord_user.roles:
-            return await ctx.send("User is already verified")
-
-        message = await ctx.send("Attempting to verify the user....")
-        async with ctx.typing():
-            ckey = normalise_to_ckey(ckey)
-            log.info(
-                f"Force verification request by {ctx.author.id}, for ckey {ckey}, discord user: {discord_user.id}"
-            )
-            # Now look for the user based on the ckey
-            player = await tgdb.get_player_by_ckey(ctx, ckey)
-
-            if player is None:
-                raise TGRecoverableError(
-                    f"Sorry {ctx.author} looks like we couldn't look up the user, ask the verification team for support!"
+            if not role:
+                raise TGUnrecoverableError(
+                    "No verification role is configured, configure it with the config command"
                 )
 
-            # clear any/all previous valid links for ckey or the discord id (in case they have decided to make a new ckey)
-            await tgdb.clear_all_valid_discord_links_for_ckey(ctx, ckey)
-            await tgdb.clear_all_valid_discord_links_for_discord_id(ctx, discord_user.id)
-            # Record that the user is linked against a discord id
-            log.info(f"Updating discord link for ckey {ckey} and discord user {discord_user.id}")
-            await tgdb.update_discord_link(ctx, None, discord_user.id)
+            if role in discord_user.roles:
+                return await ctx.send("User is already verified")
 
-            # Add role to the user
-            await discord_user.add_roles(role, reason="User has been forcefully verified")
+            message = await ctx.send("Attempting to verify the user....")
+            async with ctx.typing():
+                ckey = normalise_to_ckey(ckey)
+                log.info(
+                    f"Force verification request by {ctx.author.id}, for ckey {ckey}, discord user: {discord_user.id}"
+                )
+                # Now look for the user based on the ckey
+                player = await tgdb.get_player_by_ckey(ctx, ckey)
 
-            msg = f"Congrats, {discord_user}, your verification is complete."
-            await message.edit(content=msg)
+                if player is None:
+                    raise TGRecoverableError(
+                        f"Sorry {ctx.author} looks like we couldn't look up the user, ask the verification team for support!"
+                    )
 
-        # Delete the original message
-        try:
-            await ctx.message.delete()
-        except discord.DiscordException:
-            log.warning("Failed to delete the original message. Ensure the bot has the required permissions.")
+                # clear any/all previous valid links for ckey or the discord id (in case they have decided to make a new ckey)
+                await tgdb.clear_all_valid_discord_links_for_ckey(ctx, ckey)
+                await tgdb.clear_all_valid_discord_links_for_discord_id(ctx, discord_user.id)
+                # Record that the user is linked against a discord id
+                log.info(f"Updating discord link for ckey {ckey} and discord user {discord_user.id}")
+                await tgdb.update_discord_link(ctx, None, discord_user.id)
+
+                # Add role to the user
+                await discord_user.add_roles(role, reason="User has been forcefully verified")
+
+                msg = f"Congrats, {discord_user}, your verification is complete."
+                await message.edit(content=msg)
+
+            # Delete the original message
+            try:
+                await ctx.message.delete()
+            except discord.DiscordException:
+                log.warning("Failed to delete the original message. Ensure the bot has the required permissions.")
+
+        except Exception as e:
+            log.exception("An error occurred during force verification")
+            await ctx.send(f"An error occurred: {str(e)}")
