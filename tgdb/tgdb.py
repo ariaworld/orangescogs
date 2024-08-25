@@ -207,20 +207,18 @@ class TGDB(BaseCog):
                 embed.add_field(name=f"{k}:", value="`redacted`", inline=False)
         await ctx.send(embed=embed)
 
-    async def update_discord_link(
-        self, ctx, one_time_token: str, user_discord_snowflake: str
-    ):
+    async def update_discord_link(self, ctx, one_time_token: str, user_discord_snowflake: str, ckey: str = None):
         """
         Given a one time token, and a discord user snowflake, insert the snowflake for the matching record in the discord links table.
-        If one_time_token is None, create a new record.
+        If one_time_token is None, create a new record with the provided ckey.
         """
         prefix = await self.config.guild(ctx.guild).mysql_prefix()
         if one_time_token:
             query = f"UPDATE {prefix}discord_links SET discord_id = %s, valid = TRUE WHERE one_time_token = %s AND timestamp >= Now() - INTERVAL 4 HOUR AND discord_id IS NULL"
             parameters = [user_discord_snowflake, one_time_token]
         else:
-            query = f"INSERT INTO {prefix}discord_links (discord_id, valid) VALUES (%s, TRUE)"
-            parameters = [user_discord_snowflake]
+            query = f"INSERT INTO {prefix}discord_links (discord_id, ckey, valid) VALUES (%s, %s, TRUE)"
+            parameters = [user_discord_snowflake, ckey]
         await self.query_database(ctx, query, parameters)
 
     async def lookup_ckey_by_token(self, ctx, one_time_token: str):
