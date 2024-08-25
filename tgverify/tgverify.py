@@ -589,8 +589,8 @@ class TGverify(BaseCog):
                 await tgdb.clear_all_valid_discord_links_for_ckey(ctx, ckey)
                 await tgdb.clear_all_valid_discord_links_for_discord_id(ctx, discord_user.id)
                 # Record that the user is linked against a discord id
-                log.info(f"Updating discord link for ckey {ckey} and discord user {discord_user.id}")
-                await tgdb.update_discord_link(ctx, None, discord_user.id, ckey)
+                log.info(f"Force updating discord link for ckey {ckey} and discord user {discord_user.id}")
+                await tgdb.force_update_discord_link(ctx, discord_user.id, ckey)
 
                 # Add role to the user (even if they already have it)
                 if role not in discord_user.roles:
