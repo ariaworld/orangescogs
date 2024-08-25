@@ -223,8 +223,8 @@ class TGDB(BaseCog):
         Forcefully create a new record linking the discord user to the ckey.
         """
         prefix = await self.config.guild(ctx.guild).mysql_prefix()
-        query = f"INSERT INTO {prefix}discord_links (discord_id, ckey, one_time_token, valid) VALUES (%s, %s, NULL, TRUE)"
-        parameters = [user_discord_snowflake, ckey]
+        query = f"INSERT INTO {prefix}discord_links (discord_id, ckey, one_time_token, valid) VALUES (%s, %s, %s, TRUE)"
+        parameters = [user_discord_snowflake, ckey, ""]
         await self.query_database(ctx, query, parameters)
 
     async def lookup_ckey_by_token(self, ctx, one_time_token: str):
