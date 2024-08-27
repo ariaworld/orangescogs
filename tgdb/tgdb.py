@@ -233,6 +233,7 @@ class TGDB(BaseCog):
         timestamp = NOW()
         """
         parameters = [user_discord_snowflake, ckey]
+        log.debug(f"Executing force_update_discord_link query: {query} with parameters: {parameters}")
         await self.query_database(ctx, query, parameters)
 
     async def lookup_ckey_by_token(self, ctx, one_time_token: str):
