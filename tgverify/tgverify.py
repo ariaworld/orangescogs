@@ -433,9 +433,9 @@ class TGverify(BaseCog):
                     reason="User has verified against their in game living minutes",
                 )
 
-            fuck = f"Congrats, {ctx.author}, your verification is complete."
+            fuck = f"Congrats, {ctx.author}, remember that to maintain in-game verification you must remain inside the Discord server."
             if successful:
-                fuck = f"Congrats {ctx.author} your verification is complete"
+                fuck = f"Congrats {ctx.author} your verification is complete, remember that to maintain in-game verification you must remain inside the Discord server."
             return await message.edit(content=fuck)
 
     @verify.error
@@ -548,7 +548,7 @@ class TGverify(BaseCog):
     @commands.guild_only()
     @commands.command()
     @checks.mod_or_permissions(administrator=True)
-    async def force_verify(self, ctx, ckey: str, discord_user: Union[discord.User, int]):
+    async def forceverify(self, ctx, ckey: str, discord_user: Union[discord.User, int]):
         """
         Force verify a user based on their ckey and discord username/ID.
         This command can only be used by an admin.
@@ -559,7 +559,7 @@ class TGverify(BaseCog):
             tgdb = self.get_tgdb()
 
             if isinstance(discord_user, int):
-                discord_user = ctx.guild.get_member(discord_user)
+                discord_user = await self.bot.fetch_user(discord_user)
             else:
                 discord_user = ctx.guild.get_member(discord_user.id)
 
@@ -596,7 +596,7 @@ class TGverify(BaseCog):
                 if role not in discord_user.roles:
                     await discord_user.add_roles(role, reason="User has been forcefully verified")
 
-                msg = f"Congrats, {discord_user}, your verification is complete."
+                msg = f"Congrats, {discord_user}, your verification is complete. Remember that to maintain in-game verification you must remain inside the Discord server."
                 await message.edit(content=msg)
 
             # Delete the original message
