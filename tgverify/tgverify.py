@@ -607,9 +607,9 @@ class TGverify(BaseCog):
                 try:
                     dm_msg = f"Hello {discord_user}, your verification is complete. Remember that to maintain in-game verification you must remain inside the Discord server."
                     await discord_user.send(dm_msg)
-                    log.info(f"Sent DM to {discord_user.name}")
+                    log.info(f"Sent DM to {discord_user}")
                 except discord.Forbidden:
-                    log.warning(f"Could not send DM to {discord_user.name}. They might have DMs disabled.")
+                    log.warning(f"Could not send DM to {discord_user}. They might have DMs disabled.")
 
             # Delete the original message
             try:
