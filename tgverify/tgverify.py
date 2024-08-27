@@ -548,7 +548,7 @@ class TGverify(BaseCog):
     @commands.guild_only()
     @commands.command()
     @checks.mod_or_permissions(administrator=True)
-    async def forceverify(self, ctx, ckey: str, discord_user: Union[discord.User, int]):
+    async def forceverify(self, ctx, ckey: str, discord_user: discord.Member):
         """
         Force verify a user based on their ckey and discord username/ID.
         This command can only be used by an admin.
@@ -581,11 +581,12 @@ class TGverify(BaseCog):
                 player = await tgdb.get_player_by_ckey(ctx, ckey)
 
                 if player is None:
+                    log.error(f"Player not found for ckey: {ckey}")
                     raise TGRecoverableError(
                         f"Sorry {ctx.author} looks like we couldn't look up the user, ask the verification team for support!"
                     )
 
-                # clear any/all previous valid links for ckey or the discord id (in case they have decided to make a new ckey)
+                # clear any/all previous valid links for ckey or the discord id
                 await tgdb.clear_all_valid_discord_links_for_ckey(ctx, ckey)
                 await tgdb.clear_all_valid_discord_links_for_discord_id(ctx, discord_user.id)
                 # Record that the user is linked against a discord id
@@ -596,7 +597,7 @@ class TGverify(BaseCog):
                 if role not in discord_user.roles:
                     await discord_user.add_roles(role, reason="User has been forcefully verified")
 
-                msg = f"Congrats, {discord_user}, your verification is complete. Remember that to maintain in-game verification you must remain inside the Discord server."
+                msg = f"Congrats, {discord_user.mention}, your verification is complete. Remember that to maintain in-game verification you must remain inside the Discord server."
                 await message.edit(content=msg)
 
             # Delete the original message
@@ -605,6 +606,8 @@ class TGverify(BaseCog):
             except discord.DiscordException:
                 log.warning("Failed to delete the original message. Ensure the bot has the required permissions.")
 
+        except discord.Forbidden:
+            await ctx.send("I don't have permission to add roles to that user.")
         except Exception as e:
             log.exception("An error occurred during force verification")
             await ctx.send(f"An error occurred: {str(e)}")
