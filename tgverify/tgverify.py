@@ -581,19 +581,23 @@ class TGverify(BaseCog):
                 player = await tgdb.get_player_by_ckey(ctx, ckey)
 
                 if player is None:
-                    log.error(f"Player not found for ckey: {ckey}")
-                    raise TGRecoverableError(
-                        f"Sorry {ctx.author} looks like we couldn't look up the user, ask the verification team for support!"
-                    )
+                    log.info(f"Player not found for ckey: {ckey}. Proceeding with force update.")
+                    # Proceed with force update even if player is not found
+                    player = {}
 
                 # clear any/all previous valid links for ckey or the discord id
                 await tgdb.clear_all_valid_discord_links_for_ckey(ctx, ckey)
                 await tgdb.clear_all_valid_discord_links_for_discord_id(ctx, discord_user.id)
+                
                 # Record that the user is linked against a discord id
-                log.info(f"Force updating discord link for ckey {ckey} and discord user {discord_user.id}")
-                await tgdb.force_update_discord_link(ctx, discord_user.id, ckey)
+                try:
+                    await tgdb.force_update_discord_link(ctx, discord_user.id, ckey)
+                    log.info(f"Successfully called force_update_discord_link for ckey {ckey} and discord user {discord_user.id}")
+                except Exception as e:
+                    log.error(f"Failed to update discord link: {str(e)}")
+                    raise
 
-                # Add role to the user (even if they already have it)
+                # Add role to the user
                 if role not in discord_user.roles:
                     await discord_user.add_roles(role, reason="User has been forcefully verified")
 
