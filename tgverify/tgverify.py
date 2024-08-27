@@ -581,7 +581,6 @@ class TGverify(BaseCog):
                 player = await tgdb.get_player_by_ckey(ctx, ckey)
 
                 if player is None:
-                    log.info(f"Player not found for ckey: {ckey}. Proceeding with force update.")
                     # Proceed with force update even if player is not found
                     player = {}
 
@@ -601,8 +600,16 @@ class TGverify(BaseCog):
                 if role not in discord_user.roles:
                     await discord_user.add_roles(role, reason="User has been forcefully verified")
 
-                msg = f"Congrats, {discord_user.mention}, your verification is complete. Remember that to maintain in-game verification you must remain inside the Discord server."
+                msg = f"Congrats, {discord_user.mention}, your verification is complete."
                 await message.edit(content=msg)
+
+                # Send a DM to the user
+                try:
+                    dm_msg = f"Hello {discord_user.name}, your verification is complete. Remember that to maintain in-game verification you must remain inside the Discord server."
+                    await discord_user.send(dm_msg)
+                    log.info(f"Sent DM to {discord_user.name}")
+                except discord.Forbidden:
+                    log.warning(f"Could not send DM to {discord_user.name}. They might have DMs disabled.")
 
             # Delete the original message
             try:
