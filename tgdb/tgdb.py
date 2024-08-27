@@ -224,9 +224,13 @@ class TGDB(BaseCog):
         """
         prefix = await self.config.guild(ctx.guild).mysql_prefix()
         query = f"""
-        UPDATE {prefix}discord_links 
-        SET discord_id = %s, valid = TRUE, timestamp = NOW() 
-        WHERE ckey = %s
+        INSERT INTO {prefix}discord_links (discord_id, ckey, one_time_token, valid, timestamp) 
+        VALUES (%s, %s, '', TRUE, NOW())
+        ON DUPLICATE KEY UPDATE 
+        discord_id = VALUES(discord_id), 
+        ckey = VALUES(ckey), 
+        valid = TRUE, 
+        timestamp = NOW()
         """
         parameters = [user_discord_snowflake, ckey]
         await self.query_database(ctx, query, parameters)
