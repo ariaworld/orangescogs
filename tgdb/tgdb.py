@@ -220,11 +220,15 @@ class TGDB(BaseCog):
     
     async def force_update_discord_link(self, ctx, user_discord_snowflake: str, ckey: str):
         """
-        Forcefully create a new record linking the discord user to the ckey.
+        Forcefully create or update a record linking the discord user to the ckey.
         """
         prefix = await self.config.guild(ctx.guild).mysql_prefix()
-        query = f"INSERT INTO {prefix}discord_links (discord_id, ckey, one_time_token, valid) VALUES (%s, %s, %s, TRUE)"
-        parameters = [user_discord_snowflake, ckey, ""]
+        query = f"""
+        UPDATE {prefix}discord_links 
+        SET discord_id = %s, valid = TRUE, timestamp = NOW() 
+        WHERE ckey = %s
+        """
+        parameters = [user_discord_snowflake, ckey]
         await self.query_database(ctx, query, parameters)
 
     async def lookup_ckey_by_token(self, ctx, one_time_token: str):
