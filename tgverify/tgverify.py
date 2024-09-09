@@ -584,7 +584,7 @@ class TGverify(BaseCog):
                     elif ckey_exists:
                         error_message = f"Ckey '{ckey}' already exists in the database."
                     else:  # discord_id_exists
-                        error_message = f"Discord ID '{discord_user.id}' already exist in the database."
+                        error_message = f"Discord ID '{discord_user.id}' already exists in the database."
                     
                     return await message.edit(content=f"Error: {error_message}")
 
@@ -638,3 +638,41 @@ class TGverify(BaseCog):
         except Exception as e:
             log.exception("An error occurred during force verification")
             await ctx.send(f"An error occurred: {str(e)}")
+
+    @commands.guild_only()
+    @commands.command()
+    @checks.mod_or_permissions(administrator=True)
+    async def checklink(self, ctx, identifier: str):
+        """
+        Check if a ckey or Discord ID exists in the discord_links table.
+        """
+        tgdb = self.get_tgdb()
+        message = await ctx.send("Checking database for existing entries...")
+        async with ctx.typing():
+            try:
+                # Determine if the identifier is a ckey or a Discord ID
+                if identifier.isdigit():
+                    discord_id = int(identifier)
+                    ckey = ""
+                else:
+                    ckey = normalise_to_ckey(identifier)
+                    discord_id = 0
+
+                # Check if ckey or discord ID exists in the database
+                ckey_exists, discord_id_exists = await tgdb.check_discord_link_exists(ctx, ckey, discord_id)
+
+                if ckey_exists or discord_id_exists:
+                    if ckey_exists and discord_id_exists:
+                        result_message = f"Both ckey '{ckey}' and Discord ID '{discord_id}' exist in the database."
+                    elif ckey_exists:
+                        result_message = f"Ckey '{ckey}' exists in the database."
+                    else:  # discord_id_exists
+                        result_message = f"Discord ID '{discord_id}' exists in the database."
+                else:
+                    result_message = "Neither the ckey nor the Discord ID exists in the database."
+
+                await message.edit(content=result_message)
+
+            except Exception as e:
+                log.exception("An error occurred during the checklink command")
+                await message.edit(content=f"An error occurred: {str(e)}")
