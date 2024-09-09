@@ -586,7 +586,7 @@ class TGverify(BaseCog):
                     else:  # discord_id_exists
                         error_message = f"Discord ID '{discord_user.id}' already exists in the database."
                     
-                    return await message.edit(content=f"Error: {error_message}")
+                    return await message.edit(content=f"{error_message}")
 
                 # If neither exist, proceed with force verification
                 log.info(
@@ -642,7 +642,7 @@ class TGverify(BaseCog):
     @commands.guild_only()
     @commands.command()
     @checks.mod_or_permissions(administrator=True)
-    async def checklink(self, ctx, identifier: str):
+    async def checkverify(self, ctx, identifier: str):
         """
         Check if a ckey or Discord ID exists in the discord_links table.
         """
