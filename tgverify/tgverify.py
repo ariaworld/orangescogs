@@ -576,15 +576,15 @@ class TGverify(BaseCog):
                 ckey = normalise_to_ckey(ckey)
                 
                 # Check if ckey or discord ID already exist in the database
-                ckey_exists, discord_id_exists, error_message = await tgdb.check_discord_link_exists(ctx, ckey, discord_user.id)
-                
+                ckey_exists, discord_id_exists = await tgdb.check_discord_link_exists(ctx, ckey, discord_user.id)
+
                 if ckey_exists or discord_id_exists:
                     if ckey_exists and discord_id_exists:
                         error_message = f"Both ckey '{ckey}' and Discord ID '{discord_user.id}' already exist in the database."
                     elif ckey_exists:
                         error_message = f"Ckey '{ckey}' already exists in the database."
                     else:  # discord_id_exists
-                        error_message = f"Discord ID '{discord_user.id}' already exists in the database."
+                        error_message = f"Discord ID '{discord_user.id}' already exist in the database."
                     
                     return await message.edit(content=f"Error: {error_message}")
 
