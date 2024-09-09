@@ -438,7 +438,7 @@ class TGverify(BaseCog):
     #             fuck = f"Congrats {ctx.author} your verification is complete, remember that to maintain in-game verification you must remain inside the Discord server."
     #         return await message.edit(content=fuck)
 
-    @verify.error
+    # @verify.error
     async def verify_error(self, ctx, error):
         # Our custom, something recoverable went wrong error type
         if isinstance(error, TGRecoverableError):
