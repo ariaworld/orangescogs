@@ -235,6 +235,27 @@ class TGDB(BaseCog):
         parameters = [user_discord_snowflake, ckey]
         await self.query_database(ctx, query, parameters)
 
+    async def check_discord_link_exists(self, ctx, ckey: str, discord_id: int):
+        """
+        Check if either ckey or discord_id exists in the discord_links table.
+        Returns a tuple (ckey_exists, discord_id_exists).
+        """
+        prefix = await self.config.guild(ctx.guild).mysql_prefix()
+        query = f"""
+        SELECT 
+            (SELECT COUNT(*) FROM {prefix}discord_links WHERE ckey = %s) as ckey_exists,
+            (SELECT COUNT(*) FROM {prefix}discord_links WHERE discord_id = %s) as discord_id_exists
+        """
+        parameters = [ckey, discord_id]
+        results = await self.query_database(ctx, query, parameters)
+        
+        if results and len(results) > 0:
+            ckey_exists = bool(results[0]['ckey_exists'])
+            discord_id_exists = bool(results[0]['discord_id_exists'])
+            return (ckey_exists, discord_id_exists)
+        
+        return (False, False)
+
     async def lookup_ckey_by_token(self, ctx, one_time_token: str):
         """
         Given a one time token, search the {prefix}discord_links table for that one time token and return the ckey it's connected to
