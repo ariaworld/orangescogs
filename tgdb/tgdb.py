@@ -17,7 +17,6 @@ from redbot.core.utils.menus import menu, DEFAULT_CONTROLS
 from tgcommon.models import DiscordLink
 from tgcommon.errors import TGRecoverableError, TGUnrecoverableError
 
-from typing import Tuple
 
 __version__ = "1.0.0"
 __author__ = ["crossedfall", "oranges"]
@@ -235,24 +234,6 @@ class TGDB(BaseCog):
         """
         parameters = [user_discord_snowflake, ckey]
         await self.query_database(ctx, query, parameters)
-
-    async def check_verification_status(self, ctx, ckey: str, discord_id: int) -> Tuple[bool, bool]:
-        """
-        Check if either the ckey or discord ID is already verified in the database.
-        Returns a tuple of (ckey_verified, discord_id_verified)
-        """
-        prefix = await self.config.guild(ctx.guild).mysql_prefix()
-        query = f"""
-        SELECT 
-            (SELECT COUNT(*) FROM {prefix}discord_links WHERE ckey = %s AND valid = TRUE) as ckey_count,
-            (SELECT COUNT(*) FROM {prefix}discord_links WHERE discord_id = %s AND valid = TRUE) as discord_count
-        """
-        parameters = [ckey, str(discord_id)]
-        results = await self.query_database(ctx, query, parameters)
-        
-        if results:
-            return results[0]['ckey_count'] > 0, results[0]['discord_count'] > 0
-        return False, False
 
     async def lookup_ckey_by_token(self, ctx, one_time_token: str):
         """
