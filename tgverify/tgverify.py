@@ -676,3 +676,35 @@ class TGverify(BaseCog):
             except Exception as e:
                 log.exception("An error occurred during the checklink command")
                 await message.edit(content=f"An error occurred: {str(e)}")
+
+    @commands.guild_only()
+    @commands.command()
+    @checks.mod_or_permissions(administrator=True)
+    async def lookup(self, ctx, identifier: str):
+        """
+        Look up a user by ckey or Discord ID.
+        Returns the corresponding Discord ID/mention or ckey.
+        """
+        tgdb = self.get_tgdb()
+
+        # Determine if the identifier is a Discord ID or a ckey
+        if identifier.isdigit():
+            # It's a Discord ID
+            discord_id = int(identifier)
+            result = await tgdb.discord_link_for_discord_id(ctx, discord_id)
+            if result:
+                await ctx.send(f"Discord ID {discord_id} is linked to ckey: {result.ckey}")
+            else:
+                await ctx.send(f"No ckey found for Discord ID: {discord_id}")
+        else:
+            # It's a ckey
+            ckey = normalise_to_ckey(identifier)
+            result = await tgdb.discord_link_for_ckey(ctx, ckey)
+            if result:
+                member = ctx.guild.get_member(result.discord_id)
+                if member:
+                    await ctx.send(f"Ckey {ckey} is linked to Discord user: {member.mention} (ID: {result.discord_id})")
+                else:
+                    await ctx.send(f"Ckey {ckey} is linked to Discord ID: {result.discord_id}")
+            else:
+                await ctx.send(f"No Discord link found for ckey: {ckey}")
