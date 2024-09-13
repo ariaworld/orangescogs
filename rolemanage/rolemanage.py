@@ -301,7 +301,7 @@ class RoleManage(BaseCog):
     @checks.mod_or_permissions(administrator=True)
     async def punish(self, ctx, discord_id: int):
         """
-        Punish a user: add punished role, remove member role
+        Punish a user: adds Punished role, removes Member role
         """
         enabled = await self.config.guild(ctx.guild).enabled()
         if not enabled:
@@ -349,7 +349,7 @@ class RoleManage(BaseCog):
     @checks.mod_or_permissions(administrator=True)
     async def depunish(self, ctx, discord_id: int):
         """
-        Depunish a user: remove punished role, add member role
+        Depunish a user: removes Punished role, adds Member role.
         """
         enabled = await self.config.guild(ctx.guild).enabled()
         if not enabled:
