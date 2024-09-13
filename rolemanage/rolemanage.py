@@ -4,7 +4,7 @@ import logging
 import re
 from collections import namedtuple
 from datetime import datetime, timedelta
-from typing import Any, Dict, cast
+from typing import Any, Dict, List, Optional, cast
 
 import discord
 from discord.errors import Forbidden
@@ -37,18 +37,23 @@ class RoleManage(BaseCog):
             "role_map",
             "logging_channel",
             "rolemanages",
+            "member_role_id",
+            "punished_role_id",
         ]
 
         default_guild = {
             "enabled": True,
             "role_map": {},
             "logging_channel": False,
+            "member_role_id": None,
+            "punished_role_id": None,
         }
 
         self.config.register_guild(**default_guild)
 
     @commands.guild_only()
     @commands.group()
+    @checks.mod_or_permissions(administrator=True)
     async def rolemanage(self, ctx):
         """
         rolemanage module
@@ -72,7 +77,7 @@ class RoleManage(BaseCog):
         settings = await self.config.guild(ctx.guild).all()
         embed: discord.Embed = discord.Embed(title="__Current settings:__")
         for k, v in settings.items():
-            # Hide any non whitelisted config settings (safety moment)
+            # Hide any non-whitelisted config settings (safety moment)
             if k in self.visible_config:
                 if v == "":
                     v = None
@@ -87,7 +92,6 @@ class RoleManage(BaseCog):
         Set the channel that the rolemanages are logged to
         """
         try:
-
             await self.config.guild(ctx.guild).logging_channel.set(channel.id)
             await ctx.send(f"Channel set to {channel}")
         except (ValueError, KeyError, AttributeError) as e:
@@ -212,7 +216,7 @@ class RoleManage(BaseCog):
     @rolemanage.command()
     async def apply(self, ctx, user: discord.Member, role: str):
         """
-        remove any rolemanage on the targeted user
+        Apply a role to the targeted user
         """
         enabled = await self.config.guild(ctx.guild).enabled()
         if not enabled:
@@ -264,3 +268,126 @@ class RoleManage(BaseCog):
         if score < 70:
             return None
         return name2role[match]
+
+    @commands.guild_only()
+    @commands.group()
+    @checks.mod_or_permissions(administrator=True)
+    async def configpunish(self, ctx):
+        """
+        Configure the punish module
+        """
+        pass
+
+    @configpunish.command()
+    @checks.mod_or_permissions(administrator=True)
+    async def memberrole(self, ctx, role: discord.Role):
+        """
+        Set the member role to be added/removed during punishment
+        """
+        await self.config.guild(ctx.guild).member_role_id.set(role.id)
+        await ctx.send(f"Member role set to {role.name}")
+
+    @configpunish.command()
+    @checks.mod_or_permissions(administrator=True)
+    async def punishedrole(self, ctx, role: discord.Role):
+        """
+        Set the punished role to be added/removed during punishment
+        """
+        await self.config.guild(ctx.guild).punished_role_id.set(role.id)
+        await ctx.send(f"Punished role set to {role.name}")
+
+    @commands.command()
+    @commands.guild_only()
+    @checks.mod_or_permissions(administrator=True)
+    async def punish(self, ctx, discord_id: int):
+        """
+        Punish a user: add punished role, remove member role
+        """
+        enabled = await self.config.guild(ctx.guild).enabled()
+        if not enabled:
+            await ctx.send("This module is not enabled")
+            return
+
+        user = ctx.guild.get_member(discord_id)
+        if user is None:
+            await ctx.send("User not found.")
+            return
+
+        punished_role_id = await self.config.guild(ctx.guild).punished_role_id()
+        member_role_id = await self.config.guild(ctx.guild).member_role_id()
+        if punished_role_id is None or member_role_id is None:
+            await ctx.send(
+                "Punished role or Member role is not set. Please set them using `!configpunish` commands."
+            )
+            return
+
+        punished_role = ctx.guild.get_role(punished_role_id)
+        member_role = ctx.guild.get_role(member_role_id)
+        if punished_role is None or member_role is None:
+            await ctx.send("Punished role or Member role not found in guild.")
+            return
+
+        reason = f"Punished by {ctx.author}"
+        try:
+            await user.remove_roles(member_role, reason=reason)
+            await user.add_roles(punished_role, reason=reason)
+        except Forbidden:
+            await ctx.send("I do not have permission to manage roles for this user.")
+            return
+
+        await self.send_log_message(
+            ctx.guild,
+            f"User {user} has been punished by {ctx.author}",
+            ctx.author,
+            user,
+            ctx.message.jump_url,
+        )
+        await ctx.send(f"User {user} has been punished.")
+
+    @commands.command()
+    @commands.guild_only()
+    @checks.mod_or_permissions(administrator=True)
+    async def depunish(self, ctx, discord_id: int):
+        """
+        Depunish a user: remove punished role, add member role
+        """
+        enabled = await self.config.guild(ctx.guild).enabled()
+        if not enabled:
+            await ctx.send("This module is not enabled")
+            return
+
+        user = ctx.guild.get_member(discord_id)
+        if user is None:
+            await ctx.send("User not found.")
+            return
+
+        punished_role_id = await self.config.guild(ctx.guild).punished_role_id()
+        member_role_id = await self.config.guild(ctx.guild).member_role_id()
+        if punished_role_id is None or member_role_id is None:
+            await ctx.send(
+                "Punished role or Member role is not set. Please set them using `!configpunish` commands."
+            )
+            return
+
+        punished_role = ctx.guild.get_role(punished_role_id)
+        member_role = ctx.guild.get_role(member_role_id)
+        if punished_role is None or member_role is None:
+            await ctx.send("Punished role or Member role not found in guild.")
+            return
+
+        reason = f"Depunished by {ctx.author}"
+        try:
+            await user.add_roles(member_role, reason=reason)
+            await user.remove_roles(punished_role, reason=reason)
+        except Forbidden:
+            await ctx.send("I do not have permission to manage roles for this user.")
+            return
+
+        await self.send_log_message(
+            ctx.guild,
+            f"User {user} has been depunished by {ctx.author}",
+            ctx.author,
+            user,
+            ctx.message.jump_url,
+        )
+        await ctx.send(f"User {user} has been depunished.")
