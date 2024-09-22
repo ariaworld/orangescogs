@@ -693,7 +693,7 @@ class TGverify(BaseCog):
             discord_id = int(identifier)
             result = await tgdb.discord_link_for_discord_id(ctx, discord_id)
             if result:
-                await ctx.send(f"<@{discord_id}> is linked to ckey: {result.ckey}")
+                await ctx.send(f"<@{discord_id}> (ID: {discord_id}) is linked to ckey: {result.ckey}")
             else:
                 await ctx.send(f"No ckey found for Discord ID: {discord_id}")     
         else:
