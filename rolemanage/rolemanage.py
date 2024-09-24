@@ -347,9 +347,9 @@ class RoleManage(BaseCog):
     @commands.command()
     @commands.guild_only()
     @checks.mod_or_permissions(administrator=True)
-    async def depunish(self, ctx, discord_id: int):
+    async def unpunish(self, ctx, discord_id: int):
         """
-        Depunish a user: removes Punished role, adds Member role.
+        Unpunish a user: removes Punished role, adds Member role.
         """
         enabled = await self.config.guild(ctx.guild).enabled()
         if not enabled:
@@ -375,7 +375,7 @@ class RoleManage(BaseCog):
             await ctx.send("Punished role or Member role not found in guild.")
             return
 
-        reason = f"Depunished by {ctx.author}"
+        reason = f"Unpunished by {ctx.author}"
         try:
             await user.add_roles(member_role, reason=reason)
             await user.remove_roles(punished_role, reason=reason)
@@ -385,9 +385,9 @@ class RoleManage(BaseCog):
 
         await self.send_log_message(
             ctx.guild,
-            f"User {user} has been depunished by {ctx.author}",
+            f"User {user} has been unpunished by {ctx.author}",
             ctx.author,
             user,
             ctx.message.jump_url,
         )
-        await ctx.send(f"User {user} has been depunished.")
+        await ctx.send(f"User {user} has been unpunished.")
