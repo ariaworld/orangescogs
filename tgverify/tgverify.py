@@ -733,7 +733,7 @@ class TGverify(BaseCog):
         tgdb = self.get_tgdb()
         
         if identifier.isdigit():
-            discord_id = int(identifier)
+            discord_id = identifier
             result = await tgdb.check_valid_flag_by_discord_id(ctx, discord_id)
             id_type = "Discord ID"
         else:
@@ -752,7 +752,7 @@ class TGverify(BaseCog):
         tgdb = self.get_tgdb()
         
         if identifier.isdigit():
-            discord_id = int(identifier)
+            discord_id = identifier
             await tgdb.set_valid_flag_by_discord_id(ctx, discord_id, flag)
             id_type = "Discord ID"
         else:
