@@ -746,7 +746,7 @@ class TGverify(BaseCog):
             await ctx.send(f"No record found for {id_type} {identifier}")
         else:
             status = "valid" if result else "invalid"
-            await ctx.send(f"The {id_type} {identifier} is currently {status}")
+            await ctx.send(f"The {id_type} {identifier} is currently {status}.")
 
     async def _set_valid_flag(self, ctx, identifier: str, flag: bool):
         tgdb = self.get_tgdb()
@@ -755,11 +755,11 @@ class TGverify(BaseCog):
             discord_id = identifier
             current_status = await tgdb.check_valid_flag_by_discord_id(ctx, discord_id)
             if current_status is None:
-                await ctx.send(f"No record found for Discord ID {discord_id}")
+                await ctx.send(f"No record found for Discord ID {discord_id}.")
                 return
             if current_status == flag:
                 status = "valid" if flag else "invalid"
-                await ctx.send(f"The Discord ID {discord_id} is already {status}")
+                await ctx.send(f"The Discord ID {discord_id} is already {status}.")
                 return
             await tgdb.set_valid_flag_by_discord_id(ctx, discord_id, flag)
             id_type = "Discord ID"
@@ -771,11 +771,11 @@ class TGverify(BaseCog):
                 return
             if current_status == flag:
                 status = "valid" if flag else "invalid"
-                await ctx.send(f"The ckey {ckey} is already {status}")
+                await ctx.send(f"The ckey {ckey} is already {status}.")
                 return
             await tgdb.set_valid_flag_by_ckey(ctx, ckey, flag)
             id_type = "ckey"
             identifier = ckey
 
         status = "validated" if flag else "invalidated"
-        await ctx.send(f"The {id_type} {identifier} has been {status}")
+        await ctx.send(f"The {id_type} {identifier} has been {status}.")
