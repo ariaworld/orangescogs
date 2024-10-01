@@ -704,3 +704,62 @@ class TGverify(BaseCog):
                 await ctx.send(f"Ckey {ckey} is linked to Discord user: <@{result.discord_id}> (ID: {result.discord_id})")
             else:
                 await ctx.send(f"No Discord link found for ckey: {ckey}")
+
+    @commands.guild_only()
+    @commands.command()
+    @checks.mod_or_permissions(administrator=True)
+    async def validate(self, ctx, identifier: str):
+        """
+        Set the 'valid' flag to True for a given ckey or Discord ID.
+        """
+        await self._set_valid_flag(ctx, identifier, True)
+
+    @commands.guild_only()
+    @commands.command()
+    @checks.mod_or_permissions(administrator=True)
+    async def invalidate(self, ctx, identifier: str):
+        """
+        Set the 'valid' flag to False for a given ckey or Discord ID.
+        """
+        await self._set_valid_flag(ctx, identifier, False)
+
+    @commands.guild_only()
+    @commands.command()
+    @checks.mod_or_permissions(administrator=True)
+    async def checkvalidate(self, ctx, identifier: str):
+        """
+        Check the 'valid' flag for a given ckey or Discord ID.
+        """
+        tgdb = self.get_tgdb()
+        
+        if identifier.isdigit():
+            discord_id = int(identifier)
+            result = await tgdb.check_valid_flag_by_discord_id(ctx, discord_id)
+            id_type = "Discord ID"
+        else:
+            ckey = normalise_to_ckey(identifier)
+            result = await tgdb.check_valid_flag_by_ckey(ctx, ckey)
+            id_type = "ckey"
+            identifier = ckey
+
+        if result is None:
+            await ctx.send(f"No record found for {id_type} {identifier}")
+        else:
+            status = "valid" if result else "invalid"
+            await ctx.send(f"The {id_type} {identifier} is currently {status}")
+
+    async def _set_valid_flag(self, ctx, identifier: str, flag: bool):
+        tgdb = self.get_tgdb()
+        
+        if identifier.isdigit():
+            discord_id = int(identifier)
+            await tgdb.set_valid_flag_by_discord_id(ctx, discord_id, flag)
+            id_type = "Discord ID"
+        else:
+            ckey = normalise_to_ckey(identifier)
+            await tgdb.set_valid_flag_by_ckey(ctx, ckey, flag)
+            id_type = "ckey"
+            identifier = ckey
+
+        status = "validated" if flag else "invalidated"
+        await ctx.send(f"The {id_type} {identifier} has been {status}")

@@ -428,3 +428,49 @@ class TGDB(BaseCog):
 
         except:
             raise
+
+    async def set_valid_flag_by_ckey(self, ctx, ckey: str, flag: bool):
+        """
+        Sets the 'valid' flag for a given ckey.
+        """
+        prefix = await self.config.guild(ctx.guild).mysql_prefix()
+        query = f"UPDATE {prefix}discord_links SET valid = %s WHERE ckey = %s"
+        parameters = [int(flag), ckey]
+        await self.query_database(ctx, query, parameters)
+        log.info(f"Set valid flag to {flag} for ckey {ckey}")
+
+    async def set_valid_flag_by_discord_id(self, ctx, discord_id: int, flag: bool):
+        """
+        Sets the 'valid' flag for a given Discord ID.
+        """
+        prefix = await self.config.guild(ctx.guild).mysql_prefix()
+        query = f"UPDATE {prefix}discord_links SET valid = %s WHERE discord_id = %s"
+        parameters = [int(flag), discord_id]
+        await self.query_database(ctx, query, parameters)
+        log.info(f"Set valid flag to {flag} for Discord ID {discord_id}")
+
+    async def check_valid_flag_by_ckey(self, ctx, ckey: str) -> Union[bool, None]:
+        """
+        Checks the 'valid' flag for a given ckey.
+        Returns True, False, or None if not found.
+        """
+        prefix = await self.config.guild(ctx.guild).mysql_prefix()
+        query = f"SELECT valid FROM {prefix}discord_links WHERE ckey = %s ORDER BY timestamp DESC LIMIT 1"
+        parameters = [ckey]
+        results = await self.query_database(ctx, query, parameters)
+        if results and len(results) > 0:
+            return bool(results[0]['valid'])
+        return None
+
+    async def check_valid_flag_by_discord_id(self, ctx, discord_id: int) -> Union[bool, None]:
+        """
+        Checks the 'valid' flag for a given Discord ID.
+        Returns True, False, or None if not found.
+        """
+        prefix = await self.config.guild(ctx.guild).mysql_prefix()
+        query = f"SELECT valid FROM {prefix}discord_links WHERE discord_id = %s ORDER BY timestamp DESC LIMIT 1"
+        parameters = [discord_id]
+        results = await self.query_database(ctx, query, parameters)
+        if results and len(results) > 0:
+            return bool(results[0]['valid'])
+        return None
