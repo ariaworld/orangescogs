@@ -753,6 +753,10 @@ class TGverify(BaseCog):
         
         if identifier.isdigit():
             discord_id = identifier
+            member = ctx.guild.get_member(int(discord_id))
+            if not member and flag:  # Only check if we're trying to validate
+                await ctx.send(f"Cannot validate: Discord user with ID {discord_id} is not a member of this server.")
+                return
             current_status = await tgdb.check_valid_flag_by_discord_id(ctx, discord_id)
             if current_status is None:
                 await ctx.send(f"No record found for Discord ID {discord_id}.")
@@ -763,8 +767,17 @@ class TGverify(BaseCog):
                 return
             await tgdb.set_valid_flag_by_discord_id(ctx, discord_id, flag)
             id_type = "Discord ID"
+            identifier = discord_id
         else:
             ckey = normalise_to_ckey(identifier)
+            discord_link = await tgdb.discord_link_for_ckey(ctx, ckey)
+            if not discord_link:
+                await ctx.send(f"No Discord link found for ckey {ckey}")
+                return
+            member = ctx.guild.get_member(int(discord_link.discord_id))
+            if not member and flag:  # Only check if we're trying to validate
+                await ctx.send(f"Cannot validate: Discord user linked to ckey {ckey} is not a member of this server.")
+                return
             current_status = await tgdb.check_valid_flag_by_ckey(ctx, ckey)
             if current_status is None:
                 await ctx.send(f"No record found for ckey {ckey}")
