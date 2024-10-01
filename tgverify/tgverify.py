@@ -753,10 +753,26 @@ class TGverify(BaseCog):
         
         if identifier.isdigit():
             discord_id = identifier
+            current_status = await tgdb.check_valid_flag_by_discord_id(ctx, discord_id)
+            if current_status is None:
+                await ctx.send(f"No record found for Discord ID {discord_id}")
+                return
+            if current_status == flag:
+                status = "valid" if flag else "invalid"
+                await ctx.send(f"The Discord ID {discord_id} is already {status}")
+                return
             await tgdb.set_valid_flag_by_discord_id(ctx, discord_id, flag)
             id_type = "Discord ID"
         else:
             ckey = normalise_to_ckey(identifier)
+            current_status = await tgdb.check_valid_flag_by_ckey(ctx, ckey)
+            if current_status is None:
+                await ctx.send(f"No record found for ckey {ckey}")
+                return
+            if current_status == flag:
+                status = "valid" if flag else "invalid"
+                await ctx.send(f"The ckey {ckey} is already {status}")
+                return
             await tgdb.set_valid_flag_by_ckey(ctx, ckey, flag)
             id_type = "ckey"
             identifier = ckey
