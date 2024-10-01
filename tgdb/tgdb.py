@@ -428,3 +428,67 @@ class TGDB(BaseCog):
 
         except:
             raise
+    @commands.guild_only()
+    @commands.command()
+    @checks.mod_or_permissions(administrator=True)
+    async def validate(self, ctx, identifier: str):
+        """
+        Set the 'valid' flag to 1 (true) for a user in the discord_links table.
+        The identifier can be either a ckey or a Discord ID.
+        """
+        await self._toggle_validation(ctx, identifier, True)
+
+    @commands.guild_only()
+    @commands.command()
+    @checks.mod_or_permissions(administrator=True)
+    async def invalidate(self, ctx, identifier: str):
+        """
+        Set the 'valid' flag to 0 (false) for a user in the discord_links table.
+        The identifier can be either a ckey or a Discord ID.
+        """
+        await self._toggle_validation(ctx, identifier, False)
+
+    @commands.guild_only()
+    @commands.command()
+    @checks.mod_or_permissions(administrator=True)
+    async def checkvalidate(self, ctx, identifier: str):
+        """
+        Check the 'valid' flag for a user in the discord_links table.
+        The identifier can be either a ckey or a Discord ID.
+        """
+        tgdb = self.get_tgdb()
+        prefix = await self.config.guild(ctx.guild).mysql_prefix()
+        
+        if identifier.isdigit():
+            # It's a Discord ID
+            query = f"SELECT valid FROM {prefix}discord_links WHERE discord_id = %s ORDER BY timestamp DESC LIMIT 1"
+        else:
+            # It's a ckey
+            query = f"SELECT valid FROM {prefix}discord_links WHERE ckey = %s ORDER BY timestamp DESC LIMIT 1"
+        
+        results = await tgdb.query_database(ctx, query, [identifier])
+        
+        if results:
+            valid = bool(results[0]['valid'])
+            status = "valid" if valid else "invalid"
+            await ctx.send(f"The user with identifier '{identifier}' is currently {status}.")
+        else:
+            await ctx.send(f"No record found for the identifier '{identifier}'.")
+
+    async def _toggle_validation(self, ctx, identifier: str, valid: bool):
+        tgdb = self.get_tgdb()
+        prefix = await self.config.guild(ctx.guild).mysql_prefix()
+        
+        if identifier.isdigit():
+            # It's a Discord ID
+            query = f"UPDATE {prefix}discord_links SET valid = %s WHERE discord_id = %s"
+        else:
+            # It's a ckey
+            query = f"UPDATE {prefix}discord_links SET valid = %s WHERE ckey = %s"
+        
+        try:
+            await tgdb.query_database(ctx, query, [valid, identifier])
+            status = "validated" if valid else "invalidated"
+            await ctx.send(f"Successfully {status} the user with identifier '{identifier}'.")
+        except Exception as e:
+            await ctx.send(f"An error occurred: {str(e)}")
