@@ -1,5 +1,6 @@
 # Standard Imports
 import asyncio
+from typing import Union
 import aiomysql
 import socket
 import ipaddress
