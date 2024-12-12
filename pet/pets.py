@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 
 # Discord Imports
 import discord
+
 # Redbot Imports
 from redbot.core import checks, commands
 
@@ -569,6 +570,8 @@ class Pets(BaseCog):
             "You might as well tell me the rest. If I'm gonna kill you, you're already dead.",
             "Sticks and stones...",
             "The crossbow. Sometimes you've got to make a silent takedown.",
+            "No. I wanted orange. It gave me lemon-lime.",
+            "Wish I could help, but I'm not very well armed myself",
         ]
         self.back = [
             "We are back baby",
@@ -603,26 +606,141 @@ class Pets(BaseCog):
         self.bullet = -1
 
         self.magic_ball_responses = [
-          "It is certain",
-          "It is decidedly so",
-          "Without a doubt",
-          "Yes definitely",
-          "You may rely on it",
-          "As I see it, yes",
-          "Most likely",
-          "Outlook good",
-          "Yes",
-          "Signs point to yes",
-          "Reply hazy, try again",
-          "Ask again later",
-          "Better not tell you now",
-          "Cannot predict now",
-          "Concentrate and ask again",
-          "Don't count on it",
-          "My reply is no",
-          "My sources say no",
-          "Outlook not so good",
-          "Very doubtful",
+            "It is certain",
+            "It is decidedly so",
+            "Without a doubt",
+            "Yes definitely",
+            "You may rely on it",
+            "As I see it, yes",
+            "Most likely",
+            "Outlook good",
+            "Yes",
+            "Signs point to yes",
+            "Reply hazy, try again",
+            "Ask again later",
+            "Better not tell you now",
+            "Cannot predict now",
+            "Concentrate and ask again",
+            "Don't count on it",
+            "My reply is no",
+            "My sources say no",
+            "Outlook not so good",
+            "Very doubtful",
+        ]
+
+        self.rain_types = [
+          "rain",
+          "acid",
+          "lava",
+          "coffee",
+          "blood",
+          "urine",
+          "plasma",
+          "vodka",
+          "syrup",
+          "molasses",
+          "squid ink",
+          "moths",
+          "cats",
+          "dogs",
+          "cats and dogs",
+          "chocolate",
+          "lizards",
+          "fursuits",
+          "viruses",
+          "bacteria",
+          "atoms",
+          "molecules",
+          "neutrons",
+          "protons",
+          "electrons",
+          "photons",
+          "comets",
+          "asteroids",
+          "meteors",
+          "planets",
+          "stars",
+          "galaxies",
+          "nebulae",
+          "quasars",
+          "black holes",
+          "fungi",
+          "lichens",
+          "mosses",
+          "ferns",
+          "conifers",
+          "trees",
+          "herbs",
+          "shrubs",
+          "vines",
+          "minecraft creepers",
+          "minecraft bees",
+          "vbucks",
+          "money",
+          "coins",
+          "weed",
+          "1988 Honda Civics",
+          "water",
+          "tea",
+          "juice",
+          "wine",
+          "beer",
+          "milk",
+          "cream",
+          "yogurt",
+          "soup",
+          "broth",
+          "sauce",
+          "oil",
+          "vinegar",
+          "honey",
+          "salsa",
+          "ketchup",
+          "mustard",
+          "mayonnaise",
+          "jelly",
+          "jam",
+          "butter",
+          "margarine",
+          "oil",
+          "grease",
+          "wax",
+          "magma",
+          "slurry",
+          "gel",
+        ]
+
+        self.weather_types = [
+          "with tornadoes",
+          "and foggy",
+          "and smoggy",
+          "with hail",
+          "and storming",
+          "and thundering",
+          "with lightning",
+          "with snow",
+          "with ice",
+          "with volcanic ash",
+          "with smoke",
+          "with dust storms",
+          "with sand storms",
+          "with meteor showers",
+          "with aurora borealis",
+          "with funnel clouds"
+          "and cloudy",
+          "and sunny",
+          "with partial clouds",
+          "with extreme sun",
+          "with rats",
+          "with pigeons",
+          "with a solar eclipse",
+          "with a lunar eclipse",
+          "with tsunamis",
+          "with earthquakes",
+          "with forest fires",
+          "with solar flares",
+          "and pleasant",
+          "with a rapture",
         ]
 
     @commands.command()
@@ -800,7 +918,11 @@ class Pets(BaseCog):
 
     @commands.command()
     async def trout(self, ctx, *, name: str):
-        await ctx.send("*{} slaps {} around a bit with a large trout*".format(ctx.author.mention, name))
+        await ctx.send(
+            "*{} slaps {} around a bit with a large trout*".format(
+                ctx.author.mention, name
+            )
+        )
 
     @commands.command()
     async def hug(self, ctx, *, name: str):
@@ -967,14 +1089,18 @@ class Pets(BaseCog):
         if self.bullet == -1:
             await self.spin(ctx)
         log.info(f"Bullet position is {self.bullet}, cylinder is at {self.cylinder}")
-        message = "{} places the barrel against their temple, and pulls the trigger!".format(
-            ctx.author.mention
+        message = (
+            "{} places the barrel against their temple, and pulls the trigger!".format(
+                ctx.author.mention
+            )
         )
         if self.cylinder == self.bullet:
             # Implements an exponentially increasing timeout until a period elapses
             log.info(f"{datetime.utcnow()- self.last_timeout}")
             # Reset if the time elapsed is greater than the timeout time
-            if datetime.utcnow() - self.last_timeout > timedelta(minutes=self.timebetween_timeouts):
+            if datetime.utcnow() - self.last_timeout > timedelta(
+                minutes=self.timebetween_timeouts
+            ):
                 self.timeout_minutes = 10
             else:
                 # Otherwise double every time we kill someone
@@ -990,18 +1116,24 @@ class Pets(BaseCog):
             try:
                 await ctx.author.timeout(timeout)
             except discord.errors.Forbidden:
-                log.warning("The bot does not have permission to timeout users (requires edit member)")
+                log.warning(
+                    "The bot does not have permission to timeout users (requires edit member)"
+                )
                 pass  # Ignore if we can't timeout users
             message += "\n*Bang!* The revolver fires. {} is dead before they hit the ground. Looks like they weren't so lucky.".format(
                 ctx.author.mention
             )
             message += f"\n The timeout is now {timeout}"
-            log.info(f"The timeout was for {self.timeout_minutes}, last timeout was {self.last_timeout}, time between timeouts was {self.timebetween_timeouts}")
+            log.info(
+                f"The timeout was for {self.timeout_minutes}, last timeout was {self.last_timeout}, time between timeouts was {self.timebetween_timeouts}"
+            )
             # Make sure it spins again
             self.bullet = -1
         else:
-            message += "\n*Click!* Nothing happens, {} lives to see another day.".format(
-                ctx.author.mention
+            message += (
+                "\n*Click!* Nothing happens, {} lives to see another day.".format(
+                    ctx.author.mention
+                )
             )
         await ctx.send(message)
 
@@ -1009,7 +1141,9 @@ class Pets(BaseCog):
         bullet = random.randrange(0, 5)
         self.bullet = bullet
         log.info(f"Bullet position is {bullet}, cylinder is at {self.cylinder}")
-        await ctx.send(f"{ctx.author.mention} spins the cylinder against their arm like a badass")
+        await ctx.send(
+            f"{ctx.author.mention} spins the cylinder against their arm like a badass"
+        )
 
     @commands.command()
     async def spin(self, ctx):
@@ -1037,9 +1171,7 @@ class Pets(BaseCog):
         Consult the orb
         """
         await ctx.send(
-            "{} {}".format(
-                ctx.author.mention, random.choice(self.magic_ball_responses)
-            )
+            "{} {}".format(ctx.author.mention, random.choice(self.magic_ball_responses))
         )
 
     @commands.command(aliases=["ahelp"])
@@ -1048,27 +1180,32 @@ class Pets(BaseCog):
         BWOINK
         """
         if random.random() > 0.5:
-          await ctx.send(
-              "Admin PM from {}: {} IC issue".format(
-                  ctx.author.mention, name
-              )
-          )
+            await ctx.send(
+                "Admin PM from {}: {} IC issue".format(ctx.author.mention, name)
+            )
         else:
-          await ctx.send(
-              "Admin PM from {}: {} Skill issue".format(
-                  ctx.author.mention, name
-              )
-          )
+            await ctx.send(
+                "Admin PM from {}: {} Skill issue".format(ctx.author.mention, name)
+            )
 
     @commands.command(aliases=["vibe", "designlead"])
     async def hackmd(self, ctx):
         await ctx.send("https://file.house/WAGpNr1zLahV42P-Tj_-FQ==.jpeg")
+
     @commands.command(aliases=["kiwi"])
     async def nz(self, ctx, *, name: str = None):
         """
-        la creatura 
+        la creatura
         """
-        message = "https://www.youtube.com/watch?v=XqHA5nGap5A"
+        message = "https://file.house/Rxz-3yr_BtOVCk_Rvy9CAw==.mp4"
+        await ctx.send(message)
+
+    @commands.command(aliases=["concrete"])
+    async def pills(self, ctx, *, name: str = None):
+        """
+        Yummy pills
+        """
+        message = "https://file.house/UsJiHyRbmXT9yz2VEwFfTg==.jpg"
         await ctx.send(message)
 
     @commands.command(aliases=["takeshi"])
@@ -1078,6 +1215,36 @@ class Pets(BaseCog):
         """
         message = "https://www.youtube.com/watch?v=UHmFbT8DPX8"
         await ctx.send(message)
+
+    @commands.command(aliases=["horny"])
+    async def cooldown(self, ctx, *, name: str = None):
+        """
+        You need to cool it
+        """
+        message = "https://file.house/6cCjp_2V0Ll-To3KnIPzdg==.mp4"
+        await ctx.send(message)
+
+    @commands.command(aliases=["forecast"])
+    async def weather(self, ctx, *, name: str = None):
+      """
+      What the fuck is going on out there
+      """
+      location = ""
+      if name:
+        location = "in {} ".format(name)
+      
+      # 16C + standard distribution to get avg between ~4C and ~28C
+      tempC = 16 + (random.normalvariate() * 7.27)
+      tempF = (tempC * (9/5)) + 32
+
+      # 30% chance of rain
+      if random.random() > 0.7:
+        weather = "and raining {}!".format(random.choice(self.rain_types))
+      else:
+        weather = "{}!".format(random.choice(self.weather_types))
+
+      message = f"It's {tempC:.1f}°C ({tempF:.1f}°F) " + location + weather
+      await ctx.send(message)
 
     @commands.command(aliases=["punish"])
     @checks.mod_or_permissions(administrator=True)

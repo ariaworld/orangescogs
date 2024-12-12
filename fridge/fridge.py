@@ -1,26 +1,19 @@
 # Standard Imports
+import datetime
+import json
 import logging
 import random
-import datetime
-from typing import Union
+from collections import Counter, defaultdict
+from pathlib import Path
+from typing import Union, cast
 
 # Discord Imports
 import discord
+from fuzzywuzzy import process
 
 # Redbot Imports
-from redbot.core import commands, checks, Config
-
-from typing import cast
-import json
-from pathlib import Path
-
-from collections import Counter, defaultdict
-
-
+from redbot.core import Config, checks, commands
 from redbot.core.data_manager import cog_data_path
-
-
-from fuzzywuzzy import process
 
 __version__ = "1.1.0"
 __author__ = "oranges"
@@ -56,6 +49,23 @@ class Fridge(BaseCog):
             "rafter assistants",
             "sadness",
             "space ants",
+        ]
+        self.reactions = [
+          "how cruel!",
+          "zesty!",
+          "yummers!",
+          "enjoy!",
+          "tasty!",
+          "crunchy!",
+          "nutritious!",
+          "gross!",
+          "that was fucked up!",
+          "avert your eyes!",
+          "why would you do that?",
+          "bada bing!",
+          "how nostalgic!",
+          "just like mother used to make!",
+          "god help us all!",
         ]
         self.config = Config.get_conf(
             self, identifier=672261474290237490, force_registration=True
@@ -137,7 +147,9 @@ class Fridge(BaseCog):
                 await ctx.send("You are already stuck between the wall and the fridge!")
                 return None
             if len(bracers) >= await self.config.guild(ctx.guild).max_bracers():
-                await ctx.send("There's already too many people stuck between the wall and the fridge!")
+                await ctx.send(
+                    "There's already too many people stuck between the wall and the fridge!"
+                )
                 return None
             message = f"{member.mention} wedges themselves between the wall and the fridge, bracing it upright."
             bracers[str(member.id)] = member.name
@@ -151,11 +163,16 @@ class Fridge(BaseCog):
         """
         user = await self.config.guild(ctx.guild).fridge()
         if not user:
-            await ctx.send(f"You look up on the top of the fridge but there is only some {random.choice(self.fridge_trash)} up there.")
+            await ctx.send(
+                f"You look up on the top of the fridge but there is only some {random.choice(self.fridge_trash)} up there."
+            )
             return
         usurpation_isoformat = await self.config.guild(ctx.guild).fridgetime()
-        #convert to date object and then subtract it from another date object to get a timedelta object. must be now - date to get a positive delta value
-        usurpation_timedelta =  datetime.datetime.now().date() - datetime.date.fromisoformat(usurpation_isoformat)
+        # convert to date object and then subtract it from another date object to get a timedelta object. must be now - date to get a positive delta value
+        usurpation_timedelta = (
+            datetime.datetime.now().date()
+            - datetime.date.fromisoformat(usurpation_isoformat)
+        )
         reign_blurb = ""
         time_blurb = " They've been up there for "
         if not usurpation_timedelta.days:
@@ -165,7 +182,9 @@ class Fridge(BaseCog):
         # one month of rule (roughly)
         if usurpation_timedelta.days > 30:
             reign_blurb = f" Their reign has been long. Fridge historians will write about how {user} put a temporary pause on all the fridge tipping chaos."
-        await ctx.send(f"{user} is currently on top of the fridge.{time_blurb}{reign_blurb}")
+        await ctx.send(
+            f"{user} is currently on top of the fridge.{time_blurb}{reign_blurb}"
+        )
 
     @fridge.command()
     async def put(self, ctx, member: discord.Member):
@@ -217,18 +236,40 @@ class Fridge(BaseCog):
                 items.append(item)
         log.info(f"User {ctx.author.id} put {item} in the fridge")
 
+    @fridge.command(aliases=[])
+    async def feed(self, ctx, *, member: discord.Member):
+        """
+        feed your friends the concrete pills 
+        """
+        item = await self._get(ctx, None)
+        if (item):
+            await ctx.send(f"You feed {member.mention} {item}, {random.choice(self.reactions)}")
+
+    @fridge.command(aliases=[])
+    async def yummers(self, ctx, *, search=None):
+        """
+        I see you got the extra whipped cream in there, huh?
+        """
+        item = await self._get(ctx, search)
+        if (item):
+            await ctx.send(f"You take out {item}, yummers!")
+
     @fridge.command(aliases=["take", "remove", "find", "eat"])
     async def get(self, ctx, *, search=None):
         """
         Get a random item out of the fridge
         """
-        fridge = self.fridges[ctx.guild]
+        item = await self._get(ctx, search)
+        if (item):
+            await ctx.send(f"You take out {item}, enjoy!")
 
+    async def _get(self, ctx, search):
+        fridge = self.fridges[ctx.guild]
         if len(fridge) <= 0:
             await ctx.send(
                 f"There's nothing in the fridge, you should use restock to refill it!"
             )
-            return
+            return None
 
         if search:
             item = process.extractOne(search, list(fridge.keys()), score_cutoff=80)
@@ -236,7 +277,7 @@ class Fridge(BaseCog):
                 await ctx.send(
                     f"You don't seem to have anything you want, maybe get some and add?"
                 )
-                return
+                return None
             item = item[0]
 
         else:
@@ -245,10 +286,9 @@ class Fridge(BaseCog):
         fridge[item] -= 1
         if fridge[item] <= 0:
             del fridge[item]
-            await ctx.send(f"You take the last {item}, enjoy!")
-            return
+            return f"the last {item}"
 
-        await ctx.send(f"You take out {item}, enjoy!")
+        return item
 
     @fridge.command()
     async def peek(self, ctx, *, search=None):
@@ -332,8 +372,8 @@ class Fridge(BaseCog):
         items = list(fridge.keys())
         sample = min(amount, len(items))
         spilled_out = random.sample(items, sample)
-        if random.randrange(0, 100) < 60:     
-            await ctx.send("The temperature control blanks and shows an error code")           
+        if random.randrange(0, 100) < 60:
+            await ctx.send("The temperature control blanks and shows an error code")
             # Resets the temperature gauge
             change = random.randint(-10, 10)
             await self.config.guild(ctx.guild).temperature.set(change)
@@ -397,7 +437,9 @@ class Fridge(BaseCog):
         fridge = self.fridges[ctx.guild]
         current = len(fridge.keys())
         available = len(items)
-        await ctx.send(f"There are currently {current} items in the fridge, with {available} items for sale in stores")
+        await ctx.send(
+            f"There are currently {current} items in the fridge, with {available} items for sale in stores"
+        )
 
     @buyables.command()
     @checks.mod_or_permissions(administrator=True)
