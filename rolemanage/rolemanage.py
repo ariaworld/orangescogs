@@ -391,3 +391,105 @@ class RoleManage(BaseCog):
             ctx.message.jump_url,
         )
         await ctx.send(f"User {user} has been unpunished.")
+
+    @rolemanage.command()
+    async def addroletorole(self, ctx, role_to_add: discord.Role, base_role: discord.Role):
+        """
+        Add a role to all members who have a specific role.
+
+        Parameters:
+        -----------
+        role_to_add: The role to add to members
+        base_role: Members with this role will get the role_to_add
+        
+        Example:
+        --------
+        !rolemanage addroletorole "Age Vetted" Member
+        """
+        enabled = await self.config.guild(ctx.guild).enabled()
+        if not enabled:
+            await ctx.send("This module is not enabled")
+            return
+
+        try:
+            members_modified = 0
+            members_skipped = 0
+            async with ctx.typing():
+                for member in base_role.members:
+                    if role_to_add not in member.roles:
+                        try:
+                            await member.add_roles(role_to_add, reason=f"Mass role addition requested by {ctx.author}")
+                            members_modified += 1
+                        except discord.Forbidden:
+                            members_skipped += 1
+                            continue
+
+            result_msg = f"Role addition complete!\nAdded {role_to_add.name} to {members_modified} members who had {base_role.name}\nSkipped {members_skipped} members due to permission issues"
+            await ctx.send(result_msg)
+            
+            # Send to log channel
+            await self.send_log_message(
+                ctx.guild,
+                f"Mass role addition: {result_msg}",
+                ctx.author,
+                ctx.author,  # No specific target for mass operation
+                ctx.message.jump_url,
+            )
+            log.info(f"User {ctx.author.id} performed mass role addition of {role_to_add.name} to {members_modified} members with {base_role.name}")
+
+        except discord.Forbidden:
+            await ctx.send("I don't have permission to manage roles!")
+        except Exception as e:
+            log.error(f"Error in addroletorole: {str(e)}")
+            await ctx.send(f"An error occurred: {str(e)}")
+
+    @rolemanage.command()
+    async def removerolefromrole(self, ctx, role_to_remove: discord.Role, base_role: discord.Role):
+        """
+        Remove a role from all members who have a specific role.
+
+        Parameters:
+        -----------
+        role_to_remove: The role to remove from members
+        base_role: Remove role_to_remove from members who have this role
+        
+        Example:
+        --------
+        !rolemanage removerolefromrole "Age Vetted" Member
+        """
+        enabled = await self.config.guild(ctx.guild).enabled()
+        if not enabled:
+            await ctx.send("This module is not enabled")
+            return
+
+        try:
+            members_modified = 0
+            members_skipped = 0
+            async with ctx.typing():
+                for member in base_role.members:
+                    if role_to_remove in member.roles:
+                        try:
+                            await member.remove_roles(role_to_remove, reason=f"Mass role removal requested by {ctx.author}")
+                            members_modified += 1
+                        except discord.Forbidden:
+                            members_skipped += 1
+                            continue
+
+            result_msg = f"Role removal complete!\nRemoved {role_to_remove.name} from {members_modified} members who had {base_role.name}\nSkipped {members_skipped} members due to permission issues"
+            await ctx.send(result_msg)
+            
+            # Send to log channel
+            await self.send_log_message(
+                ctx.guild,
+                f"Mass role removal: {result_msg}",
+                ctx.author,
+                ctx.author,  # No specific target for mass operation
+                ctx.message.jump_url,
+            )
+            log.info(f"User {ctx.author.id} performed mass role removal of {role_to_remove.name} from {members_modified} members with {base_role.name}")
+
+        except discord.Forbidden:
+            await ctx.send("I don't have permission to manage roles!")
+        except Exception as e:
+            log.error(f"Error in removerolefromrole: {str(e)}")
+            await ctx.send(f"An error occurred: {str(e)}")
