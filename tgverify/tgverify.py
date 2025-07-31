@@ -1,5 +1,6 @@
 # Standard Imports
 import logging
+import asyncio
 from typing import Union
 
 # Discord Imports
@@ -669,6 +670,41 @@ class TGverify(BaseCog):
             async with ctx.typing():
                 ckey = normalise_to_ckey(ckey)
                 
+                # Check what existing links we would be deleting
+                existing_ckey_links = await tgdb.all_discord_links_for_ckey(ctx, ckey)
+                existing_discord_links = await tgdb.discord_link_for_discord_id(ctx, discord_user.id)
+                
+                # Build a confirmation message
+                confirmation_msg = f"**MEGAFORCE VERIFICATION WARNING**\n\n"
+                confirmation_msg += f"This will **PERMANENTLY DELETE** existing verification records:\n"
+                
+                if existing_ckey_links:
+                    confirmation_msg += f"• Found {len(existing_ckey_links)} existing link(s) for ckey `{ckey}`\n"
+                if existing_discord_links:
+                    confirmation_msg += f"• Found existing link for Discord ID `{discord_user.id}` (was linked to `{existing_discord_links.ckey}`)\n"
+                
+                if existing_ckey_links or existing_discord_links:
+                    confirmation_msg += f"\n**This action cannot be undone!**\n"
+                    confirmation_msg += f"React with ✅ to confirm deletion and proceed, or ❌ to cancel."
+                    
+                    confirm_message = await message.edit(content=confirmation_msg)
+                    await confirm_message.add_reaction("✅")
+                    await confirm_message.add_reaction("❌")
+                    
+                    def check(reaction, user):
+                        return user == ctx.author and str(reaction.emoji) in ["✅", "❌"] and reaction.message.id == confirm_message.id
+                    
+                    try:
+                        reaction, user = await ctx.bot.wait_for('reaction_add', timeout=30.0, check=check)
+                        
+                        if str(reaction.emoji) == "❌":
+                            return await confirm_message.edit(content="Megaforce verification cancelled.")
+                        
+                    except asyncio.TimeoutError:
+                        return await confirm_message.edit(content="Megaforce verification timed out after 30 seconds.")
+                
+                await message.edit(content="Processing megaforce verification...")
+                
                 log.info(
                     f"Mega force verification request by {ctx.author.id}, for ckey {ckey}, discord user: {discord_user.id}"
                 )
@@ -680,9 +716,20 @@ class TGverify(BaseCog):
                     # Proceed with force update even if player is not found
                     player = {}
 
-                # clear any/all previous valid links for ckey or the discord id
-                await tgdb.clear_all_valid_discord_links_for_ckey(ctx, ckey)
-                await tgdb.clear_all_valid_discord_links_for_discord_id(ctx, discord_user.id)
+                # PERMANENTLY DELETE any/all previous links for ckey or the discord id
+                try:
+                    log.info(f"MEGAFORCE: Attempting to DELETE all links for ckey: {ckey}")
+                    await tgdb.delete_all_discord_links_for_ckey(ctx, ckey)
+                    log.info(f"MEGAFORCE: Successfully deleted all links for ckey: {ckey}")
+                except Exception as e:
+                    log.error(f"MEGAFORCE: Failed to delete links for ckey {ckey}: {str(e)}")
+                
+                try:
+                    log.info(f"MEGAFORCE: Attempting to DELETE all links for Discord ID: {discord_user.id}")
+                    await tgdb.delete_all_discord_links_for_discord_id(ctx, discord_user.id)
+                    log.info(f"MEGAFORCE: Successfully deleted all links for Discord ID: {discord_user.id}")
+                except Exception as e:
+                    log.error(f"MEGAFORCE: Failed to delete links for Discord ID {discord_user.id}: {str(e)}")
                 
                 # Record that the user is linked against a discord id
                 try:

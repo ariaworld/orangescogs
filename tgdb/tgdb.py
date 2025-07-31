@@ -313,6 +313,25 @@ class TGDB(BaseCog):
         query = f"UPDATE {prefix}discord_links SET valid = FALSE WHERE discord_id = %s AND valid = TRUE"
         parameters = [discord_id]
         results = await self.query_database(ctx, query, parameters)
+# Aria addition start
+    async def delete_all_discord_links_for_ckey(self, ctx, ckey):
+        """
+        Permanently delete all discord link records for the given ckey
+        """
+        prefix = await self.config.guild(ctx.guild).mysql_prefix()
+        query = f"DELETE FROM {prefix}discord_links WHERE ckey = %s"
+        parameters = [ckey]
+        results = await self.query_database(ctx, query, parameters)
+
+    async def delete_all_discord_links_for_discord_id(self, ctx, discord_id):
+        """
+        Permanently delete all discord link records for the given discord id
+        """
+        prefix = await self.config.guild(ctx.guild).mysql_prefix()
+        query = f"DELETE FROM {prefix}discord_links WHERE discord_id = %s"
+        parameters = [discord_id]
+        results = await self.query_database(ctx, query, parameters)
+# Aria addition end
 
     async def all_discord_links_for_ckey(self, ctx, ckey):
         """
