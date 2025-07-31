@@ -641,6 +641,86 @@ class TGverify(BaseCog):
 
     @commands.guild_only()
     @commands.command()
+    @checks.is_owner()
+    async def megaforceverify(self, ctx, ckey: str, discord_user: discord.Member):
+        """
+        Force verify a user based on their ckey and discord username/ID, even if links already exist.
+        This command can only be used by the bot owner.
+        """
+        try:
+            role = await self.config.guild(ctx.guild).verified_role()
+            role = ctx.guild.get_role(role)
+            tgdb = self.get_tgdb()
+
+            if isinstance(discord_user, int):
+                discord_user = await self.bot.fetch_user(discord_user)
+            else:
+                discord_user = ctx.guild.get_member(discord_user.id)
+
+            if not discord_user:
+                return await ctx.send("Invalid Discord user ID or username.")
+
+            if not role:
+                raise TGUnrecoverableError(
+                    "No verification role is configured, configure it with the config command"
+                )
+
+            message = await ctx.send("Force updating verification link (bypassing existing checks)...")
+            async with ctx.typing():
+                ckey = normalise_to_ckey(ckey)
+                
+                log.info(
+                    f"Mega force verification request by {ctx.author.id}, for ckey {ckey}, discord user: {discord_user.id}"
+                )
+                
+                # Now look for the user based on the ckey
+                player = await tgdb.get_player_by_ckey(ctx, ckey)
+
+                if player is None:
+                    # Proceed with force update even if player is not found
+                    player = {}
+
+                # clear any/all previous valid links for ckey or the discord id
+                await tgdb.clear_all_valid_discord_links_for_ckey(ctx, ckey)
+                await tgdb.clear_all_valid_discord_links_for_discord_id(ctx, discord_user.id)
+                
+                # Record that the user is linked against a discord id
+                try:
+                    await tgdb.force_update_discord_link(ctx, discord_user.id, ckey)
+                    log.info(f"Successfully called force_update_discord_link for ckey {ckey} and discord user {discord_user.id}")
+                except Exception as e:
+                    log.error(f"Failed to update discord link: {str(e)}")
+                    raise
+
+                # Add role to the user
+                if role not in discord_user.roles:
+                    await discord_user.add_roles(role, reason="User has been mega forcefully verified")
+
+                msg = f"Congrats, {discord_user}, your verification link has been forcefully updated."
+                await message.edit(content=msg)
+
+                # Send a DM to the user
+                try:
+                    dm_msg = f"Hello {discord_user}, your verification link has been updated. Remember that to maintain in-game verification you must remain inside the Discord server."
+                    await discord_user.send(dm_msg)
+                    log.info(f"Sent DM to {discord_user}")
+                except discord.Forbidden:
+                    log.warning(f"Could not send DM to {discord_user}. They might have DMs disabled.")
+
+            # Delete the original message
+            try:
+                await ctx.message.delete()
+            except discord.DiscordException:
+                log.warning("Failed to delete the original message. Ensure the bot has the required permissions.")
+
+        except discord.Forbidden:
+            await ctx.send("I don't have permission to add roles to that user.")
+        except Exception as e:
+            log.exception("An error occurred during mega force verification")
+            await ctx.send(f"An error occurred: {str(e)}")
+
+    @commands.guild_only()
+    @commands.command()
     @checks.mod_or_permissions(administrator=True)
     async def checkverify(self, ctx, identifier: str):
         """
