@@ -1,6 +1,7 @@
 # Standard Imports
 import logging
 import asyncio
+import re #goku addition
 from typing import Union
 
 # Discord Imports
@@ -831,7 +832,39 @@ class TGverify(BaseCog):
                 await ctx.send(f"Ckey {ckey} is linked to Discord user: <@{result.discord_id}> (ID: {result.discord_id})")
             else:
                 await ctx.send(f"No Discord link found for ckey: {ckey}")
+#goku addition start
+    @commands.guild_only()
+    @commands.command()
+    @checks.is_owner()
+    async def multlookup(self, ctx, *, message: str = ""):
+        """
+        Run lookup for every mentioned user in the provided message content.
+        Role mentions are ignored.
+        """
+        user_ids = []
+        seen = set()
 
+        for mention_id in re.findall(r"<@!?(\d+)>", message):
+            user_id = int(mention_id)
+            if user_id in seen:
+                continue
+            seen.add(user_id)
+            user_ids.append(user_id)
+
+        for user in ctx.message.mentions:
+            if user.id in seen:
+                continue
+            seen.add(user.id)
+            user_ids.append(user.id)
+
+        if not user_ids:
+            await ctx.send("No user mentions found. Role mentions are ignored.")
+            return
+
+        await ctx.send(f"Running lookup for {len(user_ids)} user mention(s).")
+        for user_id in user_ids:
+            await self.lookup(ctx, str(user_id))
+#goku addition end
     @commands.guild_only()
     @commands.command()
     @checks.mod_or_permissions(administrator=True)
