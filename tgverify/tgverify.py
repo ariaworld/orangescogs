@@ -836,29 +836,69 @@ class TGverify(BaseCog):
     @commands.guild_only()
     @commands.command()
     @checks.is_owner()
-    async def multlookup(self, ctx, *, message: str = ""):
+    async def multlookup(self, ctx, message_reference: str):
         """
-        Run lookup for every mentioned user in the provided message content.
+        Run lookup for every mentioned user in a target message.
+        Accepts a message ID (current channel) or a Discord message link.
         Role mentions are ignored.
         """
+        channel = ctx.channel
+        message_id = None
+
+        if message_reference.isdigit():
+            message_id = int(message_reference)
+        else:
+            match = re.search(
+                r"https?://(?:ptb\.|canary\.)?discord(?:app)?\.com/channels/(\d+)/(\d+)/(\d+)",
+                message_reference,
+            )
+            if not match:
+                await ctx.send(
+                    "Invalid message reference. Provide a message ID or full Discord message link."
+                )
+                return
+
+            guild_id = int(match.group(1))
+            channel_id = int(match.group(2))
+            message_id = int(match.group(3))
+
+            if guild_id != ctx.guild.id:
+                await ctx.send("That message link is not from this server.")
+                return
+
+            channel = None
+            if hasattr(ctx.guild, "get_channel_or_thread"):
+                channel = ctx.guild.get_channel_or_thread(channel_id)
+            if channel is None:
+                channel = ctx.guild.get_channel(channel_id)
+            if channel is None:
+                await ctx.send("I can't access that channel.")
+                return
+
+        try:
+            target_message = await channel.fetch_message(message_id)
+        except discord.NotFound:
+            await ctx.send("Message not found.")
+            return
+        except discord.Forbidden:
+            await ctx.send("I don't have permission to read that message.")
+            return
+        except discord.HTTPException:
+            await ctx.send("Failed to fetch that message.")
+            return
+
         user_ids = []
         seen = set()
-
-        for mention_id in re.findall(r"<@!?(\d+)>", message):
-            user_id = int(mention_id)
+        for user_id in target_message.raw_mentions:
             if user_id in seen:
                 continue
             seen.add(user_id)
             user_ids.append(user_id)
 
-        for user in ctx.message.mentions:
-            if user.id in seen:
-                continue
-            seen.add(user.id)
-            user_ids.append(user.id)
-
         if not user_ids:
-            await ctx.send("No user mentions found. Role mentions are ignored.")
+            await ctx.send(
+                "No user mentions found in that message. Role mentions are ignored."
+            )
             return
 
         await ctx.send(f"Running lookup for {len(user_ids)} user mention(s).")
